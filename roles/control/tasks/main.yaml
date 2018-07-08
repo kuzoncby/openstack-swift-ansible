@@ -1,0 +1,4 @@
+- include_tasks: mariadb.yaml
+- include_tasks: memcached.yaml
+- include_tasks: keystone.yaml
+- include_tasks: swift.yaml

@@ -1,0 +1,21 @@
+- name: Setup Full Hostname
+  hostname:
+    name: '{{ inventory_hostname }}'
+  tags:
+  - before
+
+- name: Install OpenStack Queens release
+  yum:
+    name: centos-release-openstack-queens
+    state: latest
+
+- name: Disable SELinux
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: Disable firewalld
+  systemd:
+    name: firewalld
+    state: stopped
+    enabled: no

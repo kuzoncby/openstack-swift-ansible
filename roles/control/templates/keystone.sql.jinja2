@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS keystone;
+
+CREATE USER IF NOT EXISTS keystone@'localhost' IDENTIFIED BY '{{ keystone_password }}';
+CREATE USER IF NOT EXISTS keystone@'{{ groups['control'][0] }}' IDENTIFIED BY '{{ keystone_password }}';
+CREATE USER IF NOT EXISTS keystone@'%' IDENTIFIED BY '{{ keystone_password }}';
+
+GRANT ALL PRIVILEGES ON keystone.* TO keystone@'localhost';
+GRANT ALL PRIVILEGES ON keystone.* TO keystone@'{{ groups['control'][0] }}';
+GRANT ALL PRIVILEGES ON keystone.* TO keystone@'%';
+
+FLUSH PRIVILEGES;

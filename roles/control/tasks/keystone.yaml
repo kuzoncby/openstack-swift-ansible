@@ -1,0 +1,106 @@
+- name: Install Keystone
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+  - openstack-keystone
+  - openstack-utils
+  - python2-openstackclient
+  - httpd
+  - mod_wsgi
+  tags:
+  - keystone
+
+- name: Config keystone memcached connection
+  ini_file:
+    path: /etc/keystone/keystone.conf
+    section: cache
+    option: memcache_servers
+    value: "{{ groups['control'][0] }}:11211"
+    backup: yes
+  tags:
+  - keystone
+
+- name: Config keystone mariadb connection
+  ini_file:
+    path: /etc/keystone/keystone.conf
+    section: database
+    option: connection
+    value: "mysql+pymysql://keystone:{{ keystone_password }}@{{ groups['control'][0] }}/keystone"
+    backup: yes
+  tags:
+  - keystone
+
+- name: Config keystone token provider
+  ini_file:
+    path: /etc/keystone/keystone.conf
+    section: token
+    option: provider
+    value: fernet
+    backup: yes
+  tags:
+  - keystone
+
+- name: Render bootstrap-keystone.sh
+  template:
+    src: bootstrap-keystone.sh.jinja2
+    dest: /tmp/bootstrap-keystone.sh
+  tags:
+  - keystone
+
+- name: Bootstrap the Identity service
+  shell: bash /tmp/bootstrap-keystone.sh
+  ignore_errors: yes
+  tags:
+  - keystone
+
+  # Configure the Apache HTTP server
+
+- name: Config apache ServerName
+  shell: "sed -i 's/#ServerName www.example.com:80/ServerName {{ groups['control'][0] }}/g' /etc/httpd/conf/httpd.conf"
+  tags:
+  - keystone
+
+- name: Create a link to the /usr/share/keystone/wsgi-keystone.conf file
+  file:
+    src: /usr/share/keystone/wsgi-keystone.conf
+    dest: /etc/httpd/conf.d/wsgi-keystone.conf
+    owner: root
+    group: root
+    state: link
+  tags:
+  - keystone
+
+  # Finalize the installation
+
+- name: Enable httpd
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
+  tags:
+  - keystone
+
+- name: Render keystone.sh
+  template:
+    src: keystone.sh.jinja2
+    dest: /etc/profile.d/keystone.sh
+  tags:
+  - keystone
+
+- name: Config bash completion
+  shell: openstack complete > /etc/bash_completion.d/openstack.sh
+  tags:
+  - keystone
+
+- name: Render init-project.sh
+  template:
+    src: init-project.sh.jinja2
+    dest: /tmp/init-project.sh
+  tags:
+  - keystone
+
+- name: Create user
+  shell: bash /tmp/init-project.sh
+  tags:
+  - keystone

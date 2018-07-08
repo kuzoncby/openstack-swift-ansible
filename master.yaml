@@ -1,0 +1,13 @@
+- hosts: storage
+  tasks:
+  - include_role:
+      name: storage
+    tags:
+    - storage
+
+- hosts: control
+  tasks:
+  - include_role:
+      name: control
+    tags:
+    - ring

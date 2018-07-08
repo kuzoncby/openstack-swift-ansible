@@ -1,0 +1,27 @@
+---
+- name: Install MariaDB
+  yum:
+    name: mariadb-server
+    state: latest
+  tags:
+  - mariadb
+
+- name: Enable MariaDB
+  systemd:
+    name: mariadb
+    state: restarted
+    enabled: yes
+  tags:
+  - mariadb
+
+- name: Config keystone mariadb script
+  template:
+    src: keystone.sql.jinja2
+    dest: /tmp/keystone.sql
+  tags:
+  - mariadb
+
+- name: Run keystone mariadb script
+  shell: mysql -u root < /tmp/keystone.sql
+  tags:
+  - mariadb

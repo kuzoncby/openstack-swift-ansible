@@ -1,0 +1,138 @@
+- name: Install Swift storage
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+  - openstack-swift-account
+  - openstack-swift-container
+  - openstack-swift-object
+  - xfsprogs
+  - rsync
+  - openssh-clients
+  tags:
+  - storage
+
+  # Config Swift Disk
+
+- name: "Create partition on /dev/{{ swift_disk }}"
+  parted:
+    device: "/dev/{{ swift_disk }}"
+    number: 1
+    state: present
+  when: create_disk == "true"
+  tags:
+  - storage
+
+- name: "Format disk /dev/{{ swift_disk }}1"
+  filesystem:
+    fstype: "{{ disk_format}}"
+    dev: "/dev/{{ swift_disk }}1"
+  when: create_disk == "true"
+  tags:
+  - storage
+
+- name: Create mount point
+  file:
+    path: "/srv/node/{{ swift_disk }}"
+    state: directory
+  tags:
+  - storage
+
+- name: Mount Swift partition
+  mount:
+    path: "/srv/node/{{ swift_disk }}"
+    src: "/dev/{{ swift_disk }}1"
+    fstype: "{{ disk_format }}"
+    opts: "{{ mount_opts }}"
+    state: mounted
+  tags:
+  - storage
+
+  # Config Swift
+
+- name: Config swift-hash
+  ini_file:
+    path: /etc/swift/swift.conf
+    section: swift-hash
+    option: swift_hash_path_prefix
+    value: swift_shared_path
+    backup: yes
+  tags:
+  - storage
+
+- name: Config swift bind_ip
+  ini_file:
+    path: "{{ item }}"
+    section: DEFAULT
+    option: bind_ip
+    value: 0.0.0.0
+    backup: yes
+  with_items:
+  - '/etc/swift/account-server.conf'
+  - '/etc/swift/container-server.conf'
+  - '/etc/swift/object-server.conf'
+  tags:
+  - storage
+
+- name: Config swift devices
+  ini_file:
+    path: "{{ item }}"
+    section: DEFAULT
+    option: devices
+    value: /srv/node
+    backup: yes
+  with_items:
+  - '/etc/swift/account-server.conf'
+  - '/etc/swift/container-server.conf'
+  - '/etc/swift/object-server.conf'
+  tags:
+  - storage
+
+- name: Config swift mount_check
+  ini_file:
+    path: "{{ item }}"
+    section: DEFAULT
+    option: mount_check
+    value: True
+    backup: yes
+  with_items:
+  - '/etc/swift/account-server.conf'
+  - '/etc/swift/container-server.conf'
+  - '/etc/swift/object-server.conf'
+  tags:
+  - storage
+
+- name: Render /etc/rsyncd.conf
+  template:
+    src: rsyncd.conf.jinja2
+    dest: /etc/rsyncd.conf
+  tags:
+  - storage
+
+- name: Enable rsyncd
+  systemd:
+    name: rsyncd
+    state: restarted
+    enabled: yes
+  tags:
+  - storage
+
+- name: Enable swift
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+  - openstack-swift-account
+  - openstack-swift-account-replicator
+  - openstack-swift-account-auditor
+  - openstack-swift-container
+  - openstack-swift-container-replicator
+  - openstack-swift-container-updater
+  - openstack-swift-container-auditor
+  - openstack-swift-object
+  - openstack-swift-object-replicator
+  - openstack-swift-object-updater
+  - openstack-swift-object-auditor
+  tags:
+  - storage

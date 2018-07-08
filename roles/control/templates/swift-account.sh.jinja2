@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Create the swift user:
+openstack user create --domain default --password {{ swift_password }} swift
+# Add the admin role to the swift user:
+openstack role add --project service --user swift admin
+# Create the swift service entity:
+openstack service create --name swift --description "OpenStack Object Storage" object-store
+# Create the Object Storage service API endpoints:
+openstack endpoint create --region RegionOne object-store public http://{{ groups['control'][0] }}:8080/v1/AUTH_%\(project_id\)s
+openstack endpoint create --region RegionOne object-store internal http://{{ groups['control'][0] }}:8080/v1/AUTH_%\(project_id\)s
+openstack endpoint create --region RegionOne object-store admin http://{{ groups['control'][0] }}:8080/v1

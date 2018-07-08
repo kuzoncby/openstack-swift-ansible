@@ -1,0 +1,91 @@
+# Connect to Keystone
+
+- name: Install Swift controll
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+  - openstack-swift-proxy
+  - python-memcached
+  - openssh-clients
+  tags:
+  - control
+
+- name: Render swift-account.sh
+  template:
+    src: swift-account.sh.jinja2
+    dest: /tmp/swift-account.sh
+  tags:
+  - control
+
+- name: Run swift-account.sh
+  ignore_errors: yes
+  shell: bash /tmp/swift-account.sh
+  tags:
+  - control
+
+  # Configure Swift-Proxy
+
+- name: Config swift memcache
+  ini_file:
+    path: /etc/swift/proxy-server.conf
+    section: filter:cache
+    option: memcache_servers
+    value: "{{ groups['control'][0] }}:11211"
+    backup: yes
+  tags:
+  - proxy
+
+- name: Config keystone token provider
+  ini_file:
+    path: /etc/swift/proxy-server.conf
+    section: filter:authtoken
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    backup: yes
+  with_items:
+  - {option: "auth_uri", value: "http://{{ groups['control'][0] }}:5000"}
+  - {option: "auth_url", value: "http://{{ groups['control'][0] }}:35357"}
+  - {option: "memcached_servers", value: "{{ groups['control'][0] }}:11211"}
+  - {option: "auth_type", value: "password"}
+  - {option: "project_domain_id", value: "default"}
+  - {option: "user_domain_id", value: "default"}
+  - {option: "project_name", value: "service"}
+  - {option: "username", value: "swift"}
+  - {option: "password", value: "{{ swift_password }}"}
+  - {option: "delay_auth_decision", value: "True"}
+  tags:
+  - proxy
+
+- name: Config swift-hash
+  ini_file:
+    path: /etc/swift/swift.conf
+    section: swift-hash
+    option: swift_hash_path_prefix
+    value: swift_shared_path
+    backup: yes
+  tags:
+  - proxy
+
+  # Swift Ring
+
+- name: Render swift-ring
+  template:
+    src: create-swift-ring.sh.jinja2
+    dest: /tmp/create-swift-ring.sh
+  tags:
+  - ring
+
+- name: Create swift-ring
+  ignore_errors: yes
+  shell: bash /tmp/create-swift-ring.sh
+  tags:
+  - ring
+
+- name: Enable swift proxy
+  systemd:
+    name: openstack-swift-proxy
+    state: restarted
+    enabled: yes
+  tags:
+  - proxy
