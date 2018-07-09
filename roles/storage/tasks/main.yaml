@@ -35,6 +35,8 @@
   file:
     path: "/srv/node/{{ swift_disk }}"
     state: directory
+    owner: swift
+    group: swift
   tags:
   - storage
 
@@ -116,6 +118,12 @@
     enabled: yes
   tags:
   - storage
+
+- name: Set permission
+  shell: "chown -R swift:swift {{ item }}"
+  with_items:
+  - /etc/swift/
+  - /srv/node
 
 - name: Enable swift
   systemd:

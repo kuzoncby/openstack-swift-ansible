@@ -82,6 +82,9 @@
   tags:
   - ring
 
+- name: Set permission
+  shell: chown -R swift:swift /etc/swift/
+
 - name: Enable swift proxy
   systemd:
     name: openstack-swift-proxy

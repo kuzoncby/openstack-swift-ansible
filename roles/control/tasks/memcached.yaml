@@ -6,6 +6,14 @@
   tags:
   - memcached
 
+- name: Config memcached
+  template:
+    src: memcached.jinja2
+    dest: /etc/sysconfig/memcached
+    mode: 0644
+  tags:
+  - memcached
+
 - name: Enable memcached
   service:
     name: memcached
