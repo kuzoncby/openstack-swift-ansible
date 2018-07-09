@@ -17,7 +17,7 @@ make install
 ## Show status
 
 ```bash
-curl http://storage-1.sinocbd.local:8080/info
+curl http://storage-1.cluster.local:8080/info
 ```
 
 ## License
