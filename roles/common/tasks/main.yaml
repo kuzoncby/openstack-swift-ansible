@@ -4,9 +4,9 @@
   tags:
   - before
 
-- name: Install OpenStack Queens release
+- name: Install OpenStack Rocky release
   yum:
-    name: centos-release-openstack-queens
+    name: centos-release-openstack-rocky
     state: latest
 
 - name: Disable SELinux
